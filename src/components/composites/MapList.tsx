@@ -4,7 +4,8 @@ import P5Canvas from "./P5Canvas";
 import {
   initMapLoader,
   mapIds,
-  queueImageLoad,
+  queueMapLoad,
+  setVisibleMaps,
 } from "./renderUtils/mapLoaderService";
 import { selectMap } from "./renderUtils/mapPlayerService";
 import { ScrollState, useScrollManager } from "./renderUtils/scrollManager";
@@ -20,7 +21,7 @@ export function MapList() {
     p.setup = (): void => {
       p.createCanvas(p.windowWidth, p.windowHeight);
       p.background(240);
-      p.frameRate(144);
+      p.frameRate(280);
       initMapLoader();
     };
 
@@ -36,59 +37,75 @@ export function MapList() {
       scrollState.constrainScroll(-100, maxScroll);
 
       // Calculate visible indices
-      const firstVisibleIndex = Math.floor(scrollState.smoothScroll / 110);
-      const lastVisibleIndex = Math.ceil(
-        (scrollState.smoothScroll + p.height) / 110
-      );
+      const firstVisibleIndex = Math.floor(scrollState.scroll / 110);
+      const lastVisibleIndex = Math.ceil((scrollState.scroll + p.height) / 110);
 
-      // Queue visible and upcoming items for loading
-      const preloadRange = queueVisibleAndUpcomingItems(
+      // Queue visible and upcoming items for loading with visibility priority
+      const visibleRange = updateVisibleAndPreloadItems(
         firstVisibleIndex,
         lastVisibleIndex
       );
 
       // Render map items
-      renderMapItems(p, scrollState.smoothScroll, preloadRange);
+      renderMapItems(p, scrollState.smoothScroll, visibleRange);
 
       // Render scroll bar
       renderScrollBar(p, scrollState, contentHeight);
     };
 
-    // Queue visible and upcoming items for loading
-    function queueVisibleAndUpcomingItems(
+    /**
+     * Updates the loading priorities based on visibility and preloads upcoming maps
+     * @returns Object with visible range info
+     */
+    function updateVisibleAndPreloadItems(
       firstVisibleIndex: number,
       lastVisibleIndex: number
     ) {
-      const PRELOAD_AHEAD = 15;
-      const preloadStartIndex = Math.max(0, firstVisibleIndex - 2);
+      const PRELOAD_AHEAD = 15; // Number of items to preload ahead
+      const PRELOAD_BEHIND = 5; // Number of items to keep loaded behind the viewport
+
+      // Adjust for boundary conditions
+      firstVisibleIndex = Math.max(0, firstVisibleIndex);
+      lastVisibleIndex = Math.min(mapIds.length - 1, lastVisibleIndex);
+
+      // Calculate preload ranges
+      const preloadStartIndex = Math.max(0, firstVisibleIndex - PRELOAD_BEHIND);
       const preloadEndIndex = Math.min(
         mapIds.length - 1,
         lastVisibleIndex + PRELOAD_AHEAD
       );
 
-      const visibleItems = new Set<string>();
-      const preloadItems = new Set<string>();
-
-      for (let i = preloadStartIndex; i <= preloadEndIndex; i++) {
+      // Collect visible map IDs
+      const visibleMapIds = [];
+      for (let i = firstVisibleIndex; i <= lastVisibleIndex; i++) {
         if (i >= 0 && i < mapIds.length) {
-          const mapId = mapIds[i];
-          if (i >= firstVisibleIndex && i <= lastVisibleIndex) {
-            visibleItems.add(mapId);
-          } else {
-            preloadItems.add(mapId);
-          }
+          visibleMapIds.push(mapIds[i]);
         }
       }
 
-      // Queue visible items first, then preload items
-      [...visibleItems].forEach(queueImageLoad);
-      [...preloadItems].forEach(queueImageLoad);
+      // Set visible map priorities in the loader service
+      setVisibleMaps(visibleMapIds);
 
+      // Queue preload items (ahead and behind)
+      const preloadItems = [];
+      for (let i = preloadStartIndex; i < firstVisibleIndex; i++) {
+        preloadItems.push(mapIds[i]);
+      }
+      for (let i = lastVisibleIndex + 1; i <= preloadEndIndex; i++) {
+        preloadItems.push(mapIds[i]);
+      }
+
+      // Queue preload items with non-visible priority
+      preloadItems.forEach((mapId) => queueMapLoad(mapId, false));
+
+      // Return range information for rendering
       return {
         firstVisibleIndex,
         lastVisibleIndex,
         preloadStartIndex,
         preloadEndIndex,
+        visibleMapIds,
+        preloadMapIds: preloadItems,
       };
     }
 
@@ -96,11 +113,19 @@ export function MapList() {
     function renderMapItems(
       p: p5,
       smoothScroll: number,
-      range: { preloadStartIndex: number; preloadEndIndex: number }
+      range: {
+        preloadStartIndex: number;
+        preloadEndIndex: number;
+        firstVisibleIndex: number;
+        lastVisibleIndex: number;
+      }
     ) {
+      // Only render the maps in the expanded preload range to avoid unnecessary rendering
       for (let i = range.preloadStartIndex; i <= range.preloadEndIndex; i++) {
         const yPosition = i * 110 - smoothScroll;
-        if (yPosition < -100 || yPosition > p.height) continue;
+
+        // Skip items that are definitely outside the viewport with some buffer
+        if (yPosition < -110 || yPosition > p.height + 10) continue;
 
         const mapId = mapIds[i];
         const isHovered =
@@ -108,6 +133,10 @@ export function MapList() {
           p.mouseX < p.width - 36 &&
           p.mouseY > yPosition &&
           p.mouseY < yPosition + 100;
+
+        // Add a property to indicate if item is in the visible portion
+        const isVisible =
+          i >= range.firstVisibleIndex && i <= range.lastVisibleIndex;
 
         renderMapItem(p, mapId, yPosition, isHovered);
       }

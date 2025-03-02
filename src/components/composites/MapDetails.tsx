@@ -114,8 +114,9 @@ export function MapDetails() {
             <Group>
               <DifficultyBadge difficulty={selectedSong.difficulty} />
               <RatingGroup.Root
+                key={selectedSong.starRating}
                 readOnly
-                count={14}
+                count={Math.round(selectedSong.starRating)}
                 defaultValue={Math.round(selectedSong.starRating)}
                 size="md"
               >

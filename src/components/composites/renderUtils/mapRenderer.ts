@@ -88,17 +88,36 @@ function renderMapWithLoadingImage(
   yPosition: number,
   isHovered: boolean
 ) {
-  p.stroke("#27272a");
-  p.fill("#111111");
+  p.push();
+  isHovered && p.translate(-10, 0);
+  p.stroke(difficultyBadgeColors[mapEntry.difficulty as 0]);
+  p.fill(difficultyBadgeColors[mapEntry.difficulty as 0]);
+  p.rect(p.width / 2, yPosition, p.width / 2 - 36, 100, 6);
 
-  if (isHovered) {
-    p.fill("#333333");
-  }
-
+  p.fill("rgba(0,0,0,0.6)");
   p.rect(p.width / 2, yPosition, p.width / 2 - 36, 100, 6);
   p.fill("#ffffff");
-  p.textSize(24);
-  p.text(mapEntry.title || mapId, p.width / 2 + 10, yPosition + 30);
+  p.textSize(18);
+  p.textStyle(p.BOLD);
+  p.text(mapEntry?.title, p.width / 2 + 20, yPosition + 36);
+
+  p.textStyle(p.NORMAL);
+  p.textSize(14);
+  p.fill("rgba(255,255,255,0.7)");
+  p.text(
+    "Mapped by " + mapEntry.mappers.join(", "),
+    p.width / 2 + 20,
+    yPosition + 54
+  );
+  const starImg = imageCache.get("__star");
+  for (
+    let i = 0;
+    i < p.constrain(Math.round(mapEntry.starRating), 0, 20);
+    i++
+  ) {
+    p.image(starImg!, p.width / 2 + 20 + i * 20, yPosition + 66, 16, 16);
+  }
+  p.pop();
 }
 
 /**
@@ -134,7 +153,11 @@ function renderCompleteMap(
   );
   const starImg = imageCache.get("__star");
 
-  for (let i = 0; i < Math.round(mapEntry.starRating); i++) {
+  for (
+    let i = 0;
+    i < p.constrain(Math.round(mapEntry.starRating), 0, 20);
+    i++
+  ) {
     p.image(starImg!, p.width / 2 + 105 + i * 20, yPosition + 66, 16, 16);
   }
   try {

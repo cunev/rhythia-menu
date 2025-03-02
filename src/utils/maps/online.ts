@@ -8,21 +8,28 @@ export async function downloadBinary(url: string): Promise<ArrayBuffer> {
 }
 
 export async function downloadDefaultMapSet(): Promise<void> {
-  if (await globalConfig.getItem("downloaded_default_maps_2")) {
+  if (await globalConfig.getItem("downloaded_default_maps_3")) {
     return;
   }
 
-  const onlineMaps = await getBeatmaps({
-    session: "",
-    page: 1,
-    status: "UNRANKED",
-  });
+  let maps: any[] = [];
 
-  if (!onlineMaps.beatmaps) {
+  for (let i = 0; i < 10; i++) {
+    console.log(i);
+    const onlineMaps = await getBeatmaps({
+      session: "",
+      page: i,
+      status: "UNRANKED",
+    });
+
+    maps = [...maps, ...(onlineMaps.beatmaps || [])];
+  }
+
+  if (!maps) {
     return;
   }
 
-  for (const map of onlineMaps.beatmaps) {
+  for (const map of maps) {
     if (!map.beatmapFile) continue;
     const binary = await downloadBinary(map.beatmapFile);
     await addSSPMMap(binary, {
@@ -30,5 +37,5 @@ export async function downloadDefaultMapSet(): Promise<void> {
       status: map.status || "UNRANKED",
     });
   }
-  await globalConfig.setItem("downloaded_default_maps_2", true);
+  await globalConfig.setItem("downloaded_default_maps_3", true);
 }
