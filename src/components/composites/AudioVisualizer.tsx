@@ -11,75 +11,124 @@ declare global {
   }
 }
 
-const AudioVisualizer: React.FC = () => {
+// Shared audio context and source - move these outside the component so they can be shared
+let sharedAudioContext: AudioContext | null = null;
+let sharedAudioElement: HTMLAudioElement | null = null;
+let sharedAudioSource: MediaElementAudioSourceNode | null = null;
+
+// Initialize shared audio resources if they don't exist
+const initSharedAudio = (url: string) => {
+  // Create audio context if it doesn't exist
+  if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    sharedAudioContext = new AudioContextClass();
+  }
+
+  // Resume the audio context if it's suspended
+  if (sharedAudioContext.state === "suspended") {
+    sharedAudioContext.resume().catch((err) => {
+      console.error("Error resuming audio context:", err);
+    });
+  }
+
+  // Create or update the audio element if URL changes
+  if (!sharedAudioElement || sharedAudioElement.src !== url) {
+    // Clean up existing audio
+    if (sharedAudioSource) {
+      try {
+        sharedAudioSource.disconnect();
+      } catch (err) {
+        // Ignore disconnect errors
+      }
+    }
+
+    // Create new audio element
+    sharedAudioElement = new Audio(url);
+    sharedAudioElement.crossOrigin = "anonymous";
+    sharedAudioElement.loop = true;
+
+    // Create and connect new audio source
+    sharedAudioSource =
+      sharedAudioContext.createMediaElementSource(sharedAudioElement);
+    // Connect to destination so we can hear it
+    sharedAudioSource.connect(sharedAudioContext.destination);
+
+    // Register this audio element with the audioState
+    audioState.registerAudio(sharedAudioElement);
+  }
+
+  return {
+    context: sharedAudioContext,
+    element: sharedAudioElement,
+    source: sharedAudioSource,
+  };
+};
+
+// Props to allow customizing each instance
+interface AudioVisualizerProps {
+  containerId?: string; // Optional ID for targeting specific container
+  width?: string; // Optional width override
+  height?: string; // Optional height override
+  opacity?: number; // Optional opacity override
+  zIndex?: number; // Optional z-index override
+  smoothingFactor?: number; // Optional smoothing factor
+  colorTop?: string; // Optional top gradient color
+  colorBottom?: string; // Optional bottom gradient color
+}
+
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+  containerId,
+  width = "100%",
+  height = "100%",
+  opacity = 0.7,
+  zIndex = -1,
+  smoothingFactor = 0.9,
+  colorTop = "rgba(0, 217, 255, {OPACITY})",
+  colorBottom = "rgba(130, 0, 255, {OPACITY})",
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const previousDataRef = useRef<number[]>([]);
-  // Smoothing factor - higher = smoother but less responsive (between 0 and 1)
-  const smoothingFactor = 0.9;
 
   const { url, isPlaying } = useSnapshot(audioState);
   const { musicVolume, masterVolume } = useSnapshot(settings);
 
-  // Set up audio context and analyzer - only when URL changes
+  // Set up analyzer node connected to shared audio source
   useEffect(() => {
-    // Only create a new audio context if URL exists and we don't already have one
-    if (!url) {
-      return;
-    }
+    if (!url) return;
 
-    // Create audio context only if we don't have one or it's closed
-    if (
-      !audioContextRef.current ||
-      audioContextRef.current.state === "closed"
-    ) {
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
-      audioContextRef.current = new AudioContextClass();
-    }
+    // Get shared audio resources
+    const { context, element, source } = initSharedAudio(url);
 
-    // Resume the audio context (needed for newer browsers)
-    if (audioContextRef.current.state === "suspended") {
-      audioContextRef.current.resume().catch((err) => {
-        console.error("Error resuming audio context:", err);
-      });
-    }
-
-    // Create analyzer node
+    // Create analyzer for this instance
     if (!analyserRef.current) {
-      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current = context.createAnalyser();
       analyserRef.current.fftSize = 256;
       const bufferLength = analyserRef.current.frequencyBinCount;
       dataArrayRef.current = new Uint8Array(bufferLength);
     }
 
-    // Connect analyzer to the audio context destination
-    analyserRef.current.connect(audioContextRef.current.destination);
+    // Connect shared source to this analyzer
+    if (source && analyserRef.current) {
+      source.connect(analyserRef.current);
+    }
 
-    // Create an audio element for analysis
-    const audioElement = new Audio(url);
-    audioElement.crossOrigin = "anonymous";
-    audioElement.loop = true;
-    audioElement.volume = musicVolume * masterVolume;
-    audioElementRef.current = audioElement;
+    // Update volume
+    if (element) {
+      element.volume = musicVolume * masterVolume;
+    }
 
-    // Register this audio element with the audioState so controls can use it
-    audioState.registerAudio(audioElement);
-
-    // Create a dedicated source for the analyzer
-    const source =
-      audioContextRef.current.createMediaElementSource(audioElement);
-    source.connect(analyserRef.current);
-
-    // Start playing but keep it silent (actual audio comes from Howler)
-    if (isPlaying) {
-      audioElement.play().catch((err) => {
-        console.error("Error playing audio for analysis:", err);
-      });
+    // Play/pause based on current state
+    if (element) {
+      if (isPlaying && element.paused) {
+        element.play().catch((err) => {
+          console.error("Error playing shared audio:", err);
+        });
+      } else if (!isPlaying && !element.paused) {
+        element.pause();
+      }
     }
 
     // Start visualization
@@ -91,7 +140,7 @@ const AudioVisualizer: React.FC = () => {
         cancelAnimationFrame(animationRef.current);
       }
 
-      // Disconnect nodes but don't close context
+      // Disconnect this analyzer only
       if (analyserRef.current) {
         try {
           analyserRef.current.disconnect();
@@ -100,33 +149,28 @@ const AudioVisualizer: React.FC = () => {
         }
       }
 
-      // Stop and remove the audio element
-      if (audioElementRef.current) {
-        audioElementRef.current.pause();
-        audioElementRef.current.src = "";
-        // Unregister this audio element
-        audioState.registerAudio(null);
-        audioElementRef.current = null;
-      }
+      // Note: We don't clean up shared resources here
+      // Those should be handled by an app-level cleanup function
     };
-  }, [url]); // Only depend on url changes, not volume
+  }, [url]);
 
+  // Handle play/pause changes
   useEffect(() => {
-    if (audioElementRef.current) {
-      if (isPlaying && audioElementRef.current.paused) {
-        audioElementRef.current.play().catch((err) => {
+    if (sharedAudioElement) {
+      if (isPlaying && sharedAudioElement.paused) {
+        sharedAudioElement.play().catch((err) => {
           console.error("Error playing audio:", err);
         });
-      } else if (!isPlaying && !audioElementRef.current.paused) {
-        audioElementRef.current.pause();
+      } else if (!isPlaying && !sharedAudioElement.paused) {
+        sharedAudioElement.pause();
       }
     }
   }, [isPlaying]);
 
-  // Separate effect to handle volume changes
+  // Handle volume changes
   useEffect(() => {
-    if (audioElementRef.current) {
-      audioElementRef.current.volume = musicVolume * masterVolume;
+    if (sharedAudioElement) {
+      sharedAudioElement.volume = musicVolume * masterVolume;
     }
   }, [musicVolume, masterVolume]);
 
@@ -147,9 +191,23 @@ const AudioVisualizer: React.FC = () => {
       return;
     }
 
-    // Ensure canvas dimensions match container
+    // Determine container dimensions
     const resizeCanvas = () => {
-      if (canvas) {
+      if (!canvas) return;
+
+      if (containerId) {
+        // If specific container ID was provided, use its dimensions
+        const container = document.getElementById(containerId);
+        if (container) {
+          canvas.width = container.clientWidth;
+          canvas.height = container.clientHeight;
+        } else {
+          // Fallback to window dimensions if container not found
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+      } else {
+        // Use window dimensions by default
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       }
@@ -202,14 +260,19 @@ const AudioVisualizer: React.FC = () => {
           0,
           canvas.height
         );
-        gradient.addColorStop(
-          0,
-          `rgba(0, 217, 255, ${musicVolume * masterVolume})`
+
+        // Replace opacity placeholder with actual opacity value
+        const topColor = colorTop.replace(
+          "{OPACITY}",
+          (musicVolume * masterVolume).toString()
         );
-        gradient.addColorStop(
-          1,
-          `rgba(130, 0, 255, ${musicVolume * masterVolume * 0.5})`
+        const bottomColor = colorBottom.replace(
+          "{OPACITY}",
+          (musicVolume * masterVolume * 0.5).toString()
         );
+
+        gradient.addColorStop(0, topColor);
+        gradient.addColorStop(1, bottomColor);
 
         ctx.fillStyle = gradient;
         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
@@ -235,14 +298,40 @@ const AudioVisualizer: React.FC = () => {
         position: "fixed",
         top: 0,
         left: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: -1,
-        opacity: 0.7,
+        width: width,
+        height: height,
+        zIndex: zIndex,
+        opacity: opacity,
         pointerEvents: "none",
       }}
     />
   );
+};
+
+// This function should be called when your app is shutting down or unmounting
+export const cleanupSharedAudio = () => {
+  if (sharedAudioElement) {
+    sharedAudioElement.pause();
+    sharedAudioElement.src = "";
+    audioState.registerAudio(null);
+    sharedAudioElement = null;
+  }
+
+  if (sharedAudioSource) {
+    try {
+      sharedAudioSource.disconnect();
+    } catch (err) {
+      // Ignore disconnect errors
+    }
+    sharedAudioSource = null;
+  }
+
+  if (sharedAudioContext) {
+    sharedAudioContext.close().catch((err) => {
+      console.error("Error closing audio context:", err);
+    });
+    sharedAudioContext = null;
+  }
 };
 
 export default AudioVisualizer;

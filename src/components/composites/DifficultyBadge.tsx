@@ -20,3 +20,20 @@ export function DifficultyBadge({ difficulty }: { difficulty: number }) {
   }
   return difficultyBadge;
 }
+
+export const difficultyBadgeColors = {
+  0: "#18181b", // N/A
+  1: "#042713", // EASY
+  2: "#422006", // MEDIUM
+  3: "#300c0c", // HARD
+  4: "#2f0553", // LOGIC
+  5: "#27272a", // TASUKETE
+};
+export const difficultyBadgeNames = {
+  0: "N/A", // N/A
+  1: "EASY", // EASY
+  2: "MEDIUM", // MEDIUM
+  3: "HARD", // HARD
+  4: "LOGIC", // LOGIC
+  5: "TASUKETE", // TASUKETE
+};

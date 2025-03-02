@@ -5,6 +5,7 @@ import { mapIds, queueImageLoad } from "./renderUtils/mapLoaderService";
 import { selectMap } from "./renderUtils/mapPlayerService";
 import { ScrollState, useScrollManager } from "./renderUtils/scrollManager";
 import { renderMapItem } from "./renderUtils/mapRenderer";
+import { settings } from "../../settings";
 
 export function MapList() {
   const sketchFunction = useCallback(async (p: p5) => {
@@ -186,11 +187,14 @@ export function MapList() {
 
     // Mouse wheel event
     p.mouseWheel = (event: any): void => {
+      if (settings.currentTab !== "maps") return;
       scrollState.handleMouseWheel(event);
     };
 
     // Mouse pressed event
     p.mousePressed = (): void => {
+      if (settings.currentTab !== "maps") return;
+
       // Handle right-click for scrollbar dragging
       if (p.mouseButton === p.RIGHT) {
         scrollState.scrollBarDraggingRight = true;
@@ -234,6 +238,8 @@ export function MapList() {
 
     // Mouse released event
     p.mouseReleased = (): void => {
+      if (settings.currentTab !== "maps") return;
+
       scrollState.endDrag();
     };
 

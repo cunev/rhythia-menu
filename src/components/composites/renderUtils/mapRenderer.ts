@@ -6,6 +6,7 @@ import {
   failedImages,
 } from "./mapLoaderService";
 import { SoundSpaceMemoryMap } from "../../../utils/types/ssmm";
+import { difficultyBadgeColors } from "../DifficultyBadge";
 
 /**
  * Render a map item
@@ -113,13 +114,13 @@ function renderCompleteMap(
   yPosition: number,
   isHovered: boolean
 ) {
-  p.stroke("#27272a");
-  p.fill("#111111");
+  p.push();
+  isHovered && p.translate(-10, 0);
+  p.stroke(difficultyBadgeColors[mapEntry.difficulty as 0]);
+  p.fill(difficultyBadgeColors[mapEntry.difficulty as 0]);
+  p.rect(p.width / 2, yPosition, p.width / 2 - 36, 100, 6);
 
-  if (isHovered) {
-    p.fill("#333333");
-  }
-
+  p.fill("rgba(0,0,0,0.6)");
   p.rect(p.width / 2, yPosition, p.width / 2 - 36, 100, 6);
   p.fill("#ffffff");
   p.textSize(18);
@@ -134,7 +135,6 @@ function renderCompleteMap(
     p.width / 2 + 105,
     yPosition + 54
   );
-
   try {
     const img = imageCache.get(mapId);
     if (img) {
@@ -146,4 +146,5 @@ function renderCompleteMap(
     failedImages.add(mapId);
     imageCache.set(mapId, null);
   }
+  p.pop();
 }

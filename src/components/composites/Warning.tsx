@@ -7,6 +7,7 @@ import {
 } from "../../utils/storage/storageUtils";
 import { SoundSpaceMemoryMap } from "../../utils/types/ssmm";
 import { audioState } from "../../audioState";
+import AudioVisualizer from "./AudioVisualizer";
 
 export function Warning() {
   const [show, setShow] = useState(true);
@@ -103,6 +104,12 @@ export function Warning() {
             official platform https://www.rhythia.com/copyright.
           </Text>
         </Presence>
+        <AudioVisualizer
+          containerId="sidebar"
+          opacity={0.5}
+          zIndex={0}
+          smoothingFactor={0.95}
+        />
       </Stack>
     </Presence>
   );
