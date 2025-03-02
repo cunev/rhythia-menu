@@ -8,14 +8,14 @@ export async function downloadBinary(url: string): Promise<ArrayBuffer> {
 }
 
 export async function downloadDefaultMapSet(): Promise<void> {
-  if (await globalConfig.getItem("downloaded_default_maps")) {
+  if (await globalConfig.getItem("downloaded_default_maps_2")) {
     return;
   }
 
   const onlineMaps = await getBeatmaps({
     session: "",
     page: 1,
-    status: "RANKED",
+    status: "UNRANKED",
   });
 
   if (!onlineMaps.beatmaps) {
@@ -30,5 +30,5 @@ export async function downloadDefaultMapSet(): Promise<void> {
       status: map.status || "UNRANKED",
     });
   }
-  await globalConfig.setItem("downloaded_default_maps", true);
+  await globalConfig.setItem("downloaded_default_maps_2", true);
 }

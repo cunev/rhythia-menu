@@ -1,13 +1,4 @@
-import {
-  Button,
-  Card,
-  Group,
-  Image,
-  Separator,
-  Stack,
-  Tabs,
-  Text,
-} from "@chakra-ui/react";
+import { Button, Card, Group, Image, Separator, Tabs } from "@chakra-ui/react";
 import {
   TbHeart,
   TbList,
@@ -15,7 +6,6 @@ import {
   TbSquares,
   TbUsersGroup,
 } from "react-icons/tb";
-import { Clock } from "./Clock";
 import { ProfileCard } from "./ProfileCard";
 import { settings } from "../../settings";
 import { useSnapshot } from "valtio";

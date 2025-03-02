@@ -29,8 +29,7 @@ export function formatTime(milliseconds: number): string {
 }
 
 export function MapDetails() {
-  const { selectedSong, selectedSongImage, selectedSongMusic } =
-    useSnapshot(runtimeSettings);
+  const { selectedSong, selectedSongImage } = useSnapshot(runtimeSettings);
   if (!selectedSong) {
     return <></>;
   }

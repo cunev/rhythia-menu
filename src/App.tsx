@@ -1,4 +1,4 @@
-import { Image, Presence, Stack, Text } from "@chakra-ui/react";
+import { Presence, Stack } from "@chakra-ui/react";
 import { Navbar } from "./components/composites/Navbar";
 import useElementSound from "./hook/useSound";
 import { useSnapshot } from "valtio";

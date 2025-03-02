@@ -9,13 +9,7 @@ async function main() {
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   const currentWindow = getCurrentWindow();
   currentWindow.setTitle("Rhythia Online");
-  // await downloadDefaultMapSet();
-  // await register("Alt+Enter", (event) => {
-  //   if (event.state === "Pressed") {
-  //     console.log("Shortcut triggered");
-  //   }
-  // });
-  // currentWindow.setFullscreen(!(await currentWindow.isFullscreen()));
+  await downloadDefaultMapSet();
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
