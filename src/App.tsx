@@ -43,7 +43,15 @@ function App() {
   });
   return (
     <>
-      <AudioVisualizer />
+      <AudioVisualizer
+        particleCount={5}
+        particleSizeMin={10}
+        particleSizeMax={25}
+        particleColors={["rgba(0, 217, 255)", "rgba(130, 0, 255)"]}
+        particleShape="square"
+        beatThreshold={120}
+        opacity={0.1}
+      />
 
       <Warning />
       <Stack h={"100dvh"} p={"4"} userSelect={"none"}>

@@ -64,9 +64,6 @@ function renderLoadingMap(p: p5, mapId: string, yPosition: number) {
   p.stroke("#27272a");
   p.fill("#111111");
   p.rect(p.width / 2, yPosition, p.width / 2 - 36, 100, 6);
-  p.fill("#ffffff");
-  p.textSize(24);
-  p.text("Loading...", p.width / 2 + 10, yPosition + 30);
 }
 
 /**
@@ -135,6 +132,11 @@ function renderCompleteMap(
     p.width / 2 + 105,
     yPosition + 54
   );
+  const starImg = imageCache.get("__star");
+
+  for (let i = 0; i < Math.round(mapEntry.starRating); i++) {
+    p.image(starImg!, p.width / 2 + 105 + i * 20, yPosition + 66, 16, 16);
+  }
   try {
     const img = imageCache.get(mapId);
     if (img) {

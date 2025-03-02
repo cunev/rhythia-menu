@@ -14,9 +14,9 @@ export const runtimeSettings = proxy({
 export const defaultSettings = {
   currentTab: "menu",
 
-  sfxVolume: 1,
-  musicVolume: 1,
-  masterVolume: 1,
+  sfxVolume: 0.6,
+  musicVolume: 0.2,
+  masterVolume: 0.2,
   hitSound: true,
   missSound: true,
 

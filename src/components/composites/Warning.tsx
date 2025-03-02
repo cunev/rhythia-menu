@@ -106,9 +106,9 @@ export function Warning() {
         </Presence>
         <AudioVisualizer
           containerId="sidebar"
-          opacity={0.5}
           zIndex={0}
           smoothingFactor={0.95}
+          opacity={0.1}
         />
       </Stack>
     </Presence>

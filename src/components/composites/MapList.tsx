@@ -1,7 +1,11 @@
 import { useCallback } from "react";
 import p5 from "p5";
 import P5Canvas from "./P5Canvas";
-import { mapIds, queueImageLoad } from "./renderUtils/mapLoaderService";
+import {
+  initMapLoader,
+  mapIds,
+  queueImageLoad,
+} from "./renderUtils/mapLoaderService";
 import { selectMap } from "./renderUtils/mapPlayerService";
 import { ScrollState, useScrollManager } from "./renderUtils/scrollManager";
 import { renderMapItem } from "./renderUtils/mapRenderer";
@@ -17,6 +21,7 @@ export function MapList() {
       p.createCanvas(p.windowWidth, p.windowHeight);
       p.background(240);
       p.frameRate(144);
+      initMapLoader();
     };
 
     p.draw = (): void => {
@@ -47,11 +52,6 @@ export function MapList() {
 
       // Render scroll bar
       renderScrollBar(p, scrollState, contentHeight);
-
-      // Draw cursor
-      p.fill(100, 100, 100, 200);
-      p.noStroke();
-      p.ellipse(p.mouseX, p.mouseY, 25, 25);
     };
 
     // Queue visible and upcoming items for loading
@@ -228,7 +228,8 @@ export function MapList() {
           p.mouseX > p.width / 2 - 36 &&
           p.mouseX < p.width - 36 &&
           p.mouseY > yPosition &&
-          p.mouseY < yPosition + 100
+          p.mouseY < yPosition + 100 &&
+          p.mouseY > 40
         ) {
           selectMap(mapId);
           break;

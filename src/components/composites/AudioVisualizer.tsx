@@ -11,6 +11,21 @@ declare global {
   }
 }
 
+// Particle interface
+interface Particle {
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  velocityX: number;
+  velocityY: number;
+  opacity: number;
+  rotation: number;
+  rotationSpeed: number;
+  life: number;
+  maxLife: number;
+}
+
 // Shared audio context and source - move these outside the component so they can be shared
 let sharedAudioContext: AudioContext | null = null;
 let sharedAudioElement: HTMLAudioElement | null = null;
@@ -74,23 +89,50 @@ interface AudioVisualizerProps {
   smoothingFactor?: number; // Optional smoothing factor
   colorTop?: string; // Optional top gradient color
   colorBottom?: string; // Optional bottom gradient color
+
+  // Particle props
+  enableParticles?: boolean; // Toggle particles on/off
+  particleCount?: number; // Max number of particles to emit on beat
+  particleSizeMin?: number; // Minimum particle size
+  particleSizeMax?: number; // Maximum particle size
+  particleLifeMin?: number; // Minimum particle lifetime in frames
+  particleLifeMax?: number; // Maximum particle lifetime in frames
+  particleColors?: string[]; // Array of colors for particles
+  particleShape?: "square" | "circle"; // Shape of particles
+  beatThreshold?: number; // Threshold for beat detection (0-255)
+  beatDetectionRange?: [number, number]; // Frequency range for beat detection
 }
 
 const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   containerId,
   width = "100%",
   height = "100%",
-  opacity = 0.7,
+  opacity = 0.9,
   zIndex = -1,
   smoothingFactor = 0.9,
   colorTop = "rgba(0, 217, 255, {OPACITY})",
   colorBottom = "rgba(130, 0, 255, {OPACITY})",
+
+  // Particle props with defaults
+  enableParticles = true,
+  particleCount = 15,
+  particleSizeMin = 5,
+  particleSizeMax = 20,
+  particleLifeMin = 30,
+  particleLifeMax = 120,
+  particleColors = ["#ff0099", "#00ffff", "#00ff00", "#ffff00", "#ff9900"],
+  particleShape = "square",
+  beatThreshold = 180,
+  beatDetectionRange = [0, 10], // Low frequency range for bass detection
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const previousDataRef = useRef<number[]>([]);
+  const particles = useRef<Particle[]>([]);
+  const beatDetectedRef = useRef<boolean>(false);
+  const frameSinceLastBeatRef = useRef<number>(0);
 
   const { url, isPlaying } = useSnapshot(audioState);
   const { musicVolume, masterVolume } = useSnapshot(settings);
@@ -177,7 +219,134 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   // Reset smoothing data when URL changes
   useEffect(() => {
     previousDataRef.current = [];
+    particles.current = [];
   }, [url]);
+
+  // Create new particles on beat
+  const createParticles = (canvas: HTMLCanvasElement) => {
+    if (!enableParticles) return;
+
+    // Create random number of particles up to max count
+    const numToCreate = Math.floor(Math.random() * particleCount) + 1;
+
+    for (let i = 0; i < numToCreate; i++) {
+      // Random position in the lower half of the screen
+      const x = Math.random() * canvas.width;
+      const y = canvas.height - Math.random() * (canvas.height / 3);
+
+      // Random size between min and max
+      const size =
+        Math.random() * (particleSizeMax - particleSizeMin) + particleSizeMin;
+
+      // Random color from array
+      const color =
+        particleColors[Math.floor(Math.random() * particleColors.length)];
+
+      // Random velocities
+      const velocityX = (Math.random() - 0.5) * 4;
+      const velocityY = -Math.random() * 4 - 2; // Upward motion
+
+      // Random rotation
+      const rotation = Math.random() * Math.PI * 2;
+      const rotationSpeed = (Math.random() - 0.5) * 0.1;
+
+      // Random lifetime
+      const life =
+        Math.random() * (particleLifeMax - particleLifeMin) + particleLifeMin;
+
+      // Create particle
+      particles.current.push({
+        x,
+        y,
+        size,
+        color,
+        velocityX,
+        velocityY,
+        opacity: 1,
+        rotation,
+        rotationSpeed,
+        life,
+        maxLife: life,
+      });
+    }
+  };
+
+  // Update and draw particles
+  const updateParticles = (ctx: CanvasRenderingContext2D) => {
+    if (!enableParticles) return;
+
+    // Loop through particles and update
+    particles.current.forEach((particle, index) => {
+      // Update position
+      particle.x += particle.velocityX;
+      particle.y += particle.velocityY;
+
+      // Add some gravity effect
+      particle.velocityY += 0.05;
+
+      // Update rotation
+      particle.rotation += particle.rotationSpeed;
+
+      // Update life and opacity
+      particle.life--;
+      particle.opacity = particle.life / particle.maxLife;
+
+      // Remove dead particles
+      if (particle.life <= 0) {
+        particles.current.splice(index, 1);
+        return;
+      }
+
+      // Draw particle
+      ctx.save();
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate(particle.rotation);
+      ctx.globalAlpha = particle.opacity;
+      ctx.fillStyle = particle.color;
+
+      if (particleShape === "square") {
+        // Draw square
+        const halfSize = particle.size / 2;
+        ctx.fillRect(-halfSize, -halfSize, particle.size, particle.size);
+      } else {
+        // Draw circle
+        ctx.beginPath();
+        ctx.arc(0, 0, particle.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    });
+  };
+
+  // Detect beats in the audio
+  const detectBeat = (dataArray: Uint8Array) => {
+    if (!enableParticles) return false;
+
+    // Get average of frequencies in the detection range
+    let total = 0;
+    let count = 0;
+
+    for (
+      let i = beatDetectionRange[0];
+      i <= beatDetectionRange[1] && i < dataArray.length;
+      i++
+    ) {
+      total += dataArray[i];
+      count++;
+    }
+
+    const average = count > 0 ? total / count : 0;
+
+    // Check if above threshold and not too soon since last beat
+    if (average > beatThreshold && frameSinceLastBeatRef.current > 10) {
+      frameSinceLastBeatRef.current = 0;
+      return true;
+    }
+
+    frameSinceLastBeatRef.current++;
+    return false;
+  };
 
   const startVisualization = () => {
     if (!canvasRef.current || !analyserRef.current || !dataArrayRef.current)
@@ -228,10 +397,21 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       // Get frequency data
       analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
+      // Detect beat
+      const beatDetected = detectBeat(dataArrayRef.current);
+
+      // Create particles on beat
+      if (beatDetected) {
+        createParticles(canvas);
+      }
+
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw visualization
+      // Update and draw particles FIRST (so they appear behind bars)
+      updateParticles(ctx);
+
+      // Draw visualization bars
       const barWidth = (canvas.width / dataArrayRef.current.length) * 2.5;
       let x = 0;
 
@@ -262,14 +442,8 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         );
 
         // Replace opacity placeholder with actual opacity value
-        const topColor = colorTop.replace(
-          "{OPACITY}",
-          (musicVolume * masterVolume).toString()
-        );
-        const bottomColor = colorBottom.replace(
-          "{OPACITY}",
-          (musicVolume * masterVolume * 0.5).toString()
-        );
+        const topColor = colorTop.replace("{OPACITY}", "0.8");
+        const bottomColor = colorBottom.replace("{OPACITY}", "0.8");
 
         gradient.addColorStop(0, topColor);
         gradient.addColorStop(1, bottomColor);

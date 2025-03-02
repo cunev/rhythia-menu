@@ -16,15 +16,27 @@ let currentlyLoading = 0;
 const MAX_RETRY_ATTEMPTS = 3;
 const retryAttempts = new Map<string, number>();
 
+// Single shared p5 instance
+let p: p5;
+
 /**
  * Initialize the map loader service
  */
 export async function initMapLoader() {
   try {
+    // Initialize the shared p5 instance
+    p = new p5(() => {});
+
+    // Preload star image
+    const starImg = p.createImg("/star.png", "alt");
+    starImg.hide();
+    imageCache.set("__star", starImg);
+
+    // Load map keys
     const keys = await mapStorage.keys();
-    mapIds = [...keys, ...keys, ...keys]; // Triple the maps (for testing)
+    mapIds = [...keys];
   } catch (error) {
-    console.error("Failed to load map keys:", error);
+    console.error("Failed to initialize map loader:", error);
     mapIds = [];
   }
 }
@@ -105,8 +117,7 @@ async function loadMapAndImage(mapId: string) {
     const blob = new Blob([arrayBuffer], { type: "image/jpeg" });
     const url = URL.createObjectURL(blob);
 
-    // Create and initialize p5 image element
-    const p = new p5(() => {});
+    // Use the shared p5 instance to create the image
     const img = p.createImg(url, "alt");
     img.hide(); // Hide the image from DOM
 
@@ -152,5 +163,17 @@ async function loadMapAndImage(mapId: string) {
   }
 }
 
-// Initialize the loader when this module is imported
-initMapLoader();
+// Export cleanup function to properly dispose p5 instance if needed
+export function cleanup() {
+  if (p) {
+    p.remove();
+  }
+  // Clear object URLs to prevent memory leaks
+  imageCache.forEach((img) => {
+    if (img && img.elt && img.elt.src) {
+      if (img.elt.src.startsWith("blob:")) {
+        URL.revokeObjectURL(img.elt.src);
+      }
+    }
+  });
+}
