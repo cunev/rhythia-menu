@@ -63,7 +63,7 @@ export const settings = proxy<typeof defaultSettings>({
 
 // Subscribe to changes and save to localStorage
 subscribe(settings, () => {
-  getCurrentWindow().setFullscreen(settings.fullScreen);
+  // getCurrentWindow().setFullscreen(settings.fullScreen);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (error) {
