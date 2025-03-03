@@ -14,7 +14,7 @@ export async function downloadDefaultMapSet(): Promise<void> {
 
   let maps: any[] = [];
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 1; i < 2; i++) {
     console.log(i);
     const onlineMaps = await getBeatmaps({
       session: "",
