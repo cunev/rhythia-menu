@@ -1,14 +1,15 @@
-import { Box, Presence } from "@chakra-ui/react";
-import { JSX } from "react";
+import { Box, Input, Presence } from "@chakra-ui/react";
+import { JSX, useState } from "react";
 import { useSnapshot } from "valtio";
 import { MapDetails } from "../components/composites/MapDetails";
 import { runtimeSettings, settings } from "../settings";
 import { MapList } from "../components/composites/MapList";
+import { Field } from "../components/ui/field";
 
 export function MapsPage(): JSX.Element {
   const { layoutZoom } = useSnapshot(settings);
   const { selectedSong } = useSnapshot(runtimeSettings);
-
+  const [searchQuery, setSearchQuery] = useState("");
   return (
     <Box w="100%" h="100%" className="game-page">
       <Presence
@@ -27,8 +28,21 @@ export function MapsPage(): JSX.Element {
       >
         <MapDetails />
       </Presence>
+      <Box pos={"absolute"} right={0} zIndex={25} bg={"bg.subtle"} w={"50%"}>
+        <Field invalid>
+          <Input
+            autoComplete="off"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size={"2xl"}
+            placeholder="Type to search, parameters supported (eg. 'sample STAR>2, DIFF=LOGIC, AUTHOR=Noob')"
+            shadow={"lg"}
+            css={{ "--error-color": "colors.gray.800" }}
+          />
+        </Field>
+      </Box>
       <Box pos={"absolute"} h={"100%"}>
-        <MapList />
+        <MapList query={searchQuery} />
       </Box>
     </Box>
   );

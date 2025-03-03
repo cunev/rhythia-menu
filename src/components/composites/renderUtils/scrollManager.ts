@@ -75,7 +75,7 @@ export function useScrollManager(p: p5): ScrollState {
      * Handle mouse wheel events
      */
     handleMouseWheel(event: any) {
-      this.scroll += event.delta * 0.4;
+      this.scroll += event.delta * 0.6;
       this.scrollVelocity = event.delta * 0.2;
     },
 
