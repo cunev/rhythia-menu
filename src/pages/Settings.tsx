@@ -79,7 +79,7 @@ const settingRenderMap: {
     description: "Main menu scale factor",
     key: "layoutZoom",
     type: "slider",
-    min: 0.6,
+    min: 0.3,
     max: 1.5,
     step: 0.1,
     onEnd: true,

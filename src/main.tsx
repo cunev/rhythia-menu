@@ -7,8 +7,8 @@ import "react-bscroll/lib/react-scroll.css";
 import { downloadDefaultMapSet } from "./utils/maps/online.ts";
 async function main() {
   document.addEventListener("contextmenu", (event) => event.preventDefault());
-  const currentWindow = getCurrentWindow();
-  currentWindow.setTitle("Rhythia - Testing 3");
+  // const currentWindow = getCurrentWindow();
+  // currentWindow.setTitle("Rhythia - Testing 3");
   await downloadDefaultMapSet();
 
   createRoot(document.getElementById("root")!).render(

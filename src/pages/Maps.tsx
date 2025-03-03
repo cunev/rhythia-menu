@@ -11,13 +11,13 @@ export function MapsPage(): JSX.Element {
   const { selectedSong } = useSnapshot(runtimeSettings);
   const [searchQuery, setSearchQuery] = useState("");
   return (
-    <Box w="100%" h="100%" className="game-page">
+    <Box w="100%" h="100%" className="game-page" mt={2}>
       <Presence
         zoom={layoutZoom}
         pos={"absolute"}
         w={"50%"}
         h={"100%"}
-        p={4}
+        pr={2}
         pl={0}
         present={!!selectedSong}
         animationName={{
@@ -41,7 +41,7 @@ export function MapsPage(): JSX.Element {
           />
         </Field>
       </Box>
-      <Box pos={"absolute"} h={"100%"}>
+      <Box pos={"absolute"} h={"100%"} mt={20}>
         <MapList query={searchQuery} />
       </Box>
     </Box>

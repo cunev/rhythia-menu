@@ -119,7 +119,7 @@ export function MapList({ query }: MapListProps) {
 
       // Setup canvas
       p.setup = (): void => {
-        p.createCanvas(p.windowWidth, p.windowHeight);
+        p.createCanvas(p.windowWidth, p.windowHeight - 220);
         p.background(240);
         p.frameRate(280);
         initMapLoader();
@@ -134,8 +134,8 @@ export function MapList({ query }: MapListProps) {
         // Calculate visible range based on filtered IDs
         const idsToRender = query ? filteredIds : mapIds;
         const contentHeight = Math.max(1, idsToRender.length * 110);
-        const maxScroll = contentHeight - p.height + 200;
-        scrollState.constrainScroll(-100, maxScroll);
+        const maxScroll = contentHeight - p.height;
+        scrollState.constrainScroll(0, maxScroll);
 
         // Calculate visible indices
         const firstVisibleIndex = Math.floor(scrollState.scroll / 110);
@@ -260,7 +260,7 @@ export function MapList({ query }: MapListProps) {
       ) {
         const scrollBarWidth = 8;
         const scrollBarPadding = 16;
-        const scrollBarVisibleHeight = p.height - 100; // Offset from bottom
+        const scrollBarVisibleHeight = p.height; // Offset from bottom
 
         const visibleRatio = Math.min(
           scrollBarVisibleHeight / contentHeight,
@@ -271,7 +271,7 @@ export function MapList({ query }: MapListProps) {
           50
         );
 
-        const maxScroll = contentHeight - p.height + 200;
+        const maxScroll = contentHeight - p.height;
         const scrollRatio = scrollState.scroll / maxScroll;
         const scrollBarY =
           scrollRatio * (scrollBarVisibleHeight - scrollBarHeight);
@@ -391,7 +391,7 @@ export function MapList({ query }: MapListProps) {
 
       // Window resized event
       p.windowResized = (): void => {
-        p.resizeCanvas(p.windowWidth, p.windowHeight);
+        p.resizeCanvas(p.windowWidth, p.windowHeight - 220);
       };
     },
     [filteredIds, parsedQuery, isSearching, searchProgress, cacheSize]
