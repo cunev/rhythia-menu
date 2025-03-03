@@ -33,7 +33,7 @@ const imageRetryAttempts = new Map<string, number>();
 let p: p5;
 
 /**
- * Initialize the map loader service
+ * Initialize the map loader service and preload all map data and images
  */
 export async function initMapLoader() {
   try {
@@ -48,12 +48,26 @@ export async function initMapLoader() {
     // Load map keys
     const keys = await mapStorage.keys();
     mapIds = [...keys];
+
+    console.log(`Found ${mapIds.length} maps, starting preload...`);
+
+    // Queue all maps for loading at initialization time
+    // We'll set isVisible to false for all since we don't know which are visible yet
+    mapIds.forEach((mapId) => {
+      queueMapLoad(mapId, false);
+    });
+
+    // Process queues to start loading
+    processMapQueue();
+    processImageQueue();
+
+    return mapIds.length;
   } catch (error) {
     console.error("Failed to initialize map loader:", error);
     mapIds = [];
+    return 0;
   }
 }
-
 /**
  * Queue a map for loading both data and image
  * @param mapId Map identifier

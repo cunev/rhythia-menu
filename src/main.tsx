@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Provider } from "./components/ui/provider.tsx";
 import "react-bscroll/lib/react-scroll.css";
 import { downloadDefaultMapSet } from "./utils/maps/online.ts";
